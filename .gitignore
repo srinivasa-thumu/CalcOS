@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+.next/
+.expo/
+.expo-shared/
+
+# Coverage
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary
+.tmp/
+temp/
+
+# Expo
+android/
+ios/
+
+# Testing
+playwright-report/
+test-results/
+
+# Turbo
+.turbo/
+
+# Misc
+*.tsbuildinfo
