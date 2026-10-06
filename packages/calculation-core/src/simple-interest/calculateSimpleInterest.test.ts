@@ -1,0 +1,37 @@
+import { describe, expect, it } from 'vitest';
+import { calculateSimpleInterest } from './calculateSimpleInterest';
+
+describe('calculateSimpleInterest', () => {
+  it('calculates simple interest correctly', () => {
+    const result = calculateSimpleInterest({
+      principal: 100000,
+      annualRate: 10,
+      timeInYears: 2,
+    });
+
+    expect(result.interest).toBe(20000);
+    expect(result.totalAmount).toBe(120000);
+  });
+
+  it('handles a zero interest rate', () => {
+    const result = calculateSimpleInterest({
+      principal: 100000,
+      annualRate: 0,
+      timeInYears: 2,
+    });
+
+    expect(result.interest).toBe(0);
+    expect(result.totalAmount).toBe(100000);
+  });
+
+  it('handles fractional time periods', () => {
+    const result = calculateSimpleInterest({
+      principal: 100000,
+      annualRate: 12,
+      timeInYears: 0.5,
+    });
+
+    expect(result.interest).toBe(6000);
+    expect(result.totalAmount).toBe(106000);
+  });
+});
