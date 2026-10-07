@@ -7,26 +7,60 @@ import {
   Card,
   CardContent,
   Container,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { calculateSimpleInterest } from '@calcos/calculation-core';
+
+import { calculateCompoundInterest } from '@calcos/calculation-core';
+import type { CompoundingFrequency } from '@calcos/domain-types';
 import { CalculatorResult } from '@/components/calculator/CalculatorResult';
-import { validateSimpleInterestInput } from '@calcos/validation';
-import { IndexedDbHistoryRepository } from '@calcos/storage';
+import { validateCompoundInterestInput } from '@calcos/validation';
 import { historyRepository } from '@/lib/history';
 
 interface FormErrors {
   principal?: string;
   annualRate?: string;
   timeInYears?: string;
+  compoundingFrequency?: string;
 }
 
-export default function SimpleInterestPage() {
+const frequencyOptions: {
+  value: CompoundingFrequency;
+  label: string;
+}[] = [
+  {
+    value: 'annually',
+    label: 'Annually',
+  },
+  {
+    value: 'semi-annually',
+    label: 'Semi-annually',
+  },
+  {
+    value: 'quarterly',
+    label: 'Quarterly',
+  },
+  {
+    value: 'monthly',
+    label: 'Monthly',
+  },
+  {
+    value: 'daily',
+    label: 'Daily',
+  },
+];
+
+export default function CompoundInterestPage() {
   const [principal, setPrincipal] = useState('');
   const [annualRate, setAnnualRate] = useState('');
   const [timeInYears, setTimeInYears] = useState('');
+  const [compoundingFrequency, setCompoundingFrequency] =
+    useState<CompoundingFrequency>('annually');
 
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -36,10 +70,11 @@ export default function SimpleInterestPage() {
   } | null>(null);
 
   const handleCalculate = async () => {
-    const validation = validateSimpleInterestInput({
+    const validation = validateCompoundInterestInput({
       principal: Number(principal),
       annualRate: Number(annualRate),
       timeInYears: Number(timeInYears),
+      compoundingFrequency,
     });
 
     setErrors(validation.errors);
@@ -49,28 +84,29 @@ export default function SimpleInterestPage() {
       return;
     }
 
-    const calculation = calculateSimpleInterest({
+    const calculation = calculateCompoundInterest({
       principal: Number(principal),
       annualRate: Number(annualRate),
       timeInYears: Number(timeInYears),
+      compoundingFrequency,
     });
 
     setResult(calculation);
     try {
-        await historyRepository.save({
+    await historyRepository.save({
         id: crypto.randomUUID(),
-        calculatorType: 'simple-interest',
+        calculatorType: 'compound-interest',
         inputs: {
-            principal: Number(principal),
-            annualRate: Number(annualRate),
-            timeInYears: Number(timeInYears),
+        principal: Number(principal),
+        annualRate: Number(annualRate),
+        timeInYears: Number(timeInYears),
+        compoundingFrequency,
         },
         result: calculation,
         createdAt: new Date().toISOString(),
-        });
-    }
-    catch (error) {
-        console.error('Failed to save calculation history.', error);
+    });
+    } catch (error) {
+    console.error('Failed to save calculation history.', error);
     }
   };
 
@@ -87,12 +123,12 @@ export default function SimpleInterestPage() {
                 mb: 1,
               }}
             >
-              Simple Interest Calculator
+              Compound Interest Calculator
             </Typography>
 
             <Typography color="text.secondary">
-              Calculate simple interest and the total amount for your
-              investment or loan.
+              Calculate compound interest and the total amount based on your
+              investment, interest rate, time period and compounding frequency.
             </Typography>
           </Box>
 
@@ -144,6 +180,42 @@ export default function SimpleInterestPage() {
                   }}
                 />
 
+                <FormControl
+                  fullWidth
+                  error={Boolean(errors.compoundingFrequency)}
+                >
+                  <InputLabel id="compounding-frequency-label">
+                    Compounding Frequency
+                  </InputLabel>
+
+                  <Select
+                    labelId="compounding-frequency-label"
+                    value={compoundingFrequency}
+                    label="Compounding Frequency"
+                    onChange={(event) =>
+                      setCompoundingFrequency(
+                        event.target.value as CompoundingFrequency,
+                      )
+                    }
+                  >
+                    {frequencyOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+
+                  {errors.compoundingFrequency && (
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ mt: 0.5, ml: 1.75 }}
+                    >
+                      {errors.compoundingFrequency}
+                    </Typography>
+                  )}
+                </FormControl>
+
                 <Button
                   variant="contained"
                   size="large"
@@ -157,7 +229,7 @@ export default function SimpleInterestPage() {
 
           {result && (
             <CalculatorResult
-                interestLabel="Simple Interest"
+                interestLabel="Compound Interest"
                 interest={result.interest}
                 totalAmount={result.totalAmount}
             />

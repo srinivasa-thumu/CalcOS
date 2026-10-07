@@ -1,18 +1,23 @@
-import type { SimpleInterestInput } from '@calcos/domain-types';
+import type { CompoundingFrequency } from '@calcos/domain-types';
 
-export interface SimpleInterestValidationResult {
+import type {
+  CompoundInterestInput,
+} from '@calcos/domain-types';
+
+export interface CompoundInterestValidationResult {
   isValid: boolean;
   errors: {
     principal?: string;
     annualRate?: string;
     timeInYears?: string;
+    compoundingFrequency?: string;
   };
 }
 
-export function validateSimpleInterestInput(
-  input: SimpleInterestInput,
-): SimpleInterestValidationResult {
-  const errors: SimpleInterestValidationResult['errors'] = {};
+export function validateCompoundInterestInput(
+  input: CompoundInterestInput,
+): CompoundInterestValidationResult {
+  const errors: CompoundInterestValidationResult['errors'] = {};
 
   if (!Number.isFinite(input.principal)) {
     errors.principal = 'Enter a valid principal amount.';
@@ -30,6 +35,18 @@ export function validateSimpleInterestInput(
     errors.timeInYears = 'Enter a valid time period.';
   } else if (input.timeInYears <= 0) {
     errors.timeInYears = 'Time period must be greater than 0.';
+  }
+
+  const validFrequencies: CompoundingFrequency[] = [
+    'annually',
+    'semi-annually',
+    'quarterly',
+    'monthly',
+    'daily',
+  ];
+
+  if (!validFrequencies.includes(input.compoundingFrequency)) {
+    errors.compoundingFrequency = 'Select a valid compounding frequency.';
   }
 
   return {

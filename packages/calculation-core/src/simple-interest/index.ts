@@ -1,5 +1,1 @@
-export {
-  calculateSimpleInterest,
-  type SimpleInterestInput,
-  type SimpleInterestResult,
-} from './calculateSimpleInterest';
+export { calculateSimpleInterest } from './calculateSimpleInterest';

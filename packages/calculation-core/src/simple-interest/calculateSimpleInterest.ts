@@ -1,13 +1,7 @@
-export interface SimpleInterestInput {
-  principal: number;
-  annualRate: number;
-  timeInYears: number;
-}
-
-export interface SimpleInterestResult {
-  interest: number;
-  totalAmount: number;
-}
+import type {
+  SimpleInterestInput,
+  SimpleInterestResult,
+} from '@calcos/domain-types';
 
 export function calculateSimpleInterest(
   input: SimpleInterestInput,

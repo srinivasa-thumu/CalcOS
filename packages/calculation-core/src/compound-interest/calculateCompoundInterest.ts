@@ -1,21 +1,9 @@
-export type CompoundingFrequency =
-  | 'annually'
-  | 'semi-annually'
-  | 'quarterly'
-  | 'monthly'
-  | 'daily';
+import type { CompoundingFrequency } from '@calcos/domain-types';
 
-export interface CompoundInterestInput {
-  principal: number;
-  annualRate: number;
-  timeInYears: number;
-  compoundingFrequency: CompoundingFrequency;
-}
-
-export interface CompoundInterestResult {
-  interest: number;
-  totalAmount: number;
-}
+import type {
+  CompoundInterestInput,
+  CompoundInterestResult,
+} from '@calcos/domain-types';
 
 const compoundsPerYear: Record<CompoundingFrequency, number> = {
   annually: 1,
