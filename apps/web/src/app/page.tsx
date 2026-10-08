@@ -62,16 +62,35 @@ export default function HomePage() {
           </Box>
 
           <Box>
-            <Typography
-              component="h2"
-              variant="h4"
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
               sx={{
-                fontWeight: 700,
                 mb: 3,
+                justifyContent: 'space-between',
+                alignItems: {
+                  xs: 'flex-start',
+                  sm: 'center',
+                },
               }}
             >
-              Calculators
-            </Typography>
+              <Typography
+                component="h2"
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                }}
+              >
+                Calculators
+              </Typography>
+
+              <Button
+                href="/history"
+                variant="outlined"
+              >
+                View History
+              </Button>
+            </Stack>
 
             <Box
               sx={{

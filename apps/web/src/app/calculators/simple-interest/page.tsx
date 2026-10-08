@@ -6,16 +6,15 @@ import {
   Button,
   Card,
   CardContent,
-  Container,
   Stack,
-  TextField,
-  Typography,
 } from '@mui/material';
 import { calculateSimpleInterest } from '@calcos/calculation-core';
-import { CalculatorResult } from '@/components/calculator/CalculatorResult';
 import { validateSimpleInterestInput } from '@calcos/validation';
-import { IndexedDbHistoryRepository } from '@calcos/storage';
+import { CalculatorResult } from '@/components/calculator/CalculatorResult';
+import { saveSimpleInterestHistory } from '@/lib/calculationHistory';
+import { CalculatorNumberField } from '@/components/calculator/CalculatorNumberField';
 import { historyRepository } from '@/lib/history';
+import { CalculatorPageLayout } from '@/components/calculator/CalculatorPageLayout';
 
 interface FormErrors {
   principal?: string;
@@ -35,12 +34,39 @@ export default function SimpleInterestPage() {
     totalAmount: number;
   } | null>(null);
 
-  const handleCalculate = async () => {
-    const validation = validateSimpleInterestInput({
+  const handleInputChange = (
+    field: keyof FormErrors,
+    value: string,
+    setter: (value: string) => void,
+  ) => {
+    setter(value);
+
+    setErrors((currentErrors) => {
+      if (!currentErrors[field]) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[field];
+
+      return nextErrors;
+    });
+
+    setResult(null);
+  };
+
+  const handleCalculate = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    const input = {
       principal: Number(principal),
       annualRate: Number(annualRate),
       timeInYears: Number(timeInYears),
-    });
+    };
+
+    const validation = validateSimpleInterestInput(input);
 
     setErrors(validation.errors);
 
@@ -49,121 +75,87 @@ export default function SimpleInterestPage() {
       return;
     }
 
-    const calculation = calculateSimpleInterest({
-      principal: Number(principal),
-      annualRate: Number(annualRate),
-      timeInYears: Number(timeInYears),
-    });
+    const calculation = calculateSimpleInterest(input);
 
     setResult(calculation);
+
     try {
-        await historyRepository.save({
-        id: crypto.randomUUID(),
-        calculatorType: 'simple-interest',
-        inputs: {
-            principal: Number(principal),
-            annualRate: Number(annualRate),
-            timeInYears: Number(timeInYears),
-        },
-        result: calculation,
-        createdAt: new Date().toISOString(),
-        });
-    }
-    catch (error) {
-        console.error('Failed to save calculation history.', error);
+    await saveSimpleInterestHistory(
+  historyRepository,
+  input,
+  calculation,
+);
+    } catch (error) {
+    console.error(
+        'Failed to save calculation history.',
+        error,
+    );
     }
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: { xs: 4, md: 8 } }}>
-        <Stack spacing={4}>
-          <Box>
-            <Typography
-              component="h1"
-              variant="h3"
-              sx={{
-                fontWeight: 700,
-                mb: 1,
-              }}
-            >
-              Simple Interest Calculator
-            </Typography>
-
-            <Typography color="text.secondary">
-              Calculate simple interest and the total amount for your
-              investment or loan.
-            </Typography>
-          </Box>
-
-          <Card>
+    <CalculatorPageLayout
+  title="Simple Interest Calculator"
+  description="Calculate simple interest and the total amount for your investment or loan."
+>
+<Card>
             <CardContent>
-              <Stack spacing={3}>
-                <TextField
-                  label="Principal Amount"
-                  type="number"
-                  value={principal}
-                  onChange={(event) => setPrincipal(event.target.value)}
-                  error={Boolean(errors.principal)}
-                  helperText={errors.principal}
-                  slotProps={{
-                    htmlInput: {
-                      min: 0,
-                      step: '0.01',
-                    },
-                  }}
-                />
+              <Box
+                component="form"
+                aria-label="Simple interest calculator"
+                onSubmit={handleCalculate}
+                noValidate
+              >
+                <Stack spacing={3}>
+                  <CalculatorNumberField
+  name="principal"
+  label="Principal Amount"
+  value={principal}
+  error={errors.principal}
+  onChange={(value) =>
+    handleInputChange('principal', value, setPrincipal)
+  }
+/>
 
-                <TextField
-                  label="Annual Interest Rate (%)"
-                  type="number"
-                  value={annualRate}
-                  onChange={(event) => setAnnualRate(event.target.value)}
-                  error={Boolean(errors.annualRate)}
-                  helperText={errors.annualRate}
-                  slotProps={{
-                    htmlInput: {
-                      min: 0,
-                      step: '0.01',
-                    },
-                  }}
-                />
+<CalculatorNumberField
+  name="annualRate"
+  label="Annual Interest Rate (%)"
+  value={annualRate}
+  error={errors.annualRate}
+  onChange={(value) =>
+    handleInputChange('annualRate', value, setAnnualRate)
+  }
+/>
 
-                <TextField
-                  label="Time (Years)"
-                  type="number"
-                  value={timeInYears}
-                  onChange={(event) => setTimeInYears(event.target.value)}
-                  error={Boolean(errors.timeInYears)}
-                  helperText={errors.timeInYears}
-                  slotProps={{
-                    htmlInput: {
-                      min: 0,
-                      step: '0.01',
-                    },
-                  }}
-                />
+<CalculatorNumberField
+  name="timeInYears"
+  label="Time (Years)"
+  value={timeInYears}
+  error={errors.timeInYears}
+  onChange={(value) =>
+    handleInputChange('timeInYears', value, setTimeInYears)
+  }
+/>
 
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleCalculate}
-                >
-                  Calculate
-                </Button>
-              </Stack>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    size="large"
+                  >
+                    Calculate
+                  </Button>
+                </Stack>
+              </Box>
             </CardContent>
           </Card>
 
-          {result && (
-            <CalculatorResult
-                interestLabel="Simple Interest"
-                interest={result.interest}
-                totalAmount={result.totalAmount}
-            />
-            )}
-        </Stack>
-      </Box>
-    </Container>
+  {result && (
+    <CalculatorResult
+      interestLabel="Simple Interest"
+      interest={result.interest}
+      totalAmount={result.totalAmount}
+    />
+  )}
+</CalculatorPageLayout>
   );
 }
