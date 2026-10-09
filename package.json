@@ -14,9 +14,11 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:e2e": "pnpm build && playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "fake-indexeddb": "^6.2.5",
     "prettier": "^3.6.2",
     "turbo": "^2.5.6",
