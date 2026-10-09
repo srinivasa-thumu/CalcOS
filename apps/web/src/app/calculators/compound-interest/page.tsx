@@ -11,16 +11,19 @@ import {
   MenuItem,
   Select,
   Stack,
+  Typography,
 } from '@mui/material';
 
 import { calculateCompoundInterest } from '@calcos/calculation-core';
 import type { CompoundingFrequency } from '@calcos/domain-types';
-import { CalculatorResult } from '@/components/calculator/CalculatorResult';
 import { validateCompoundInterestInput } from '@calcos/validation';
-import { saveCompoundInterestHistory } from '@/lib/calculationHistory';
+
+import { CalculatorResult } from '@/components/calculator/CalculatorResult';
 import { CalculatorNumberField } from '@/components/calculator/CalculatorNumberField';
-import { historyRepository } from '@/lib/history';
 import { CalculatorPageLayout } from '@/components/calculator/CalculatorPageLayout';
+
+import { saveCompoundInterestHistory } from '@/lib/calculationHistory';
+import { historyRepository } from '@/lib/history';
 
 interface FormErrors {
   principal?: string;
@@ -33,36 +36,23 @@ const frequencyOptions: {
   value: CompoundingFrequency;
   label: string;
 }[] = [
-  {
-    value: 'annually',
-    label: 'Annually',
-  },
-  {
-    value: 'semi-annually',
-    label: 'Semi-annually',
-  },
-  {
-    value: 'quarterly',
-    label: 'Quarterly',
-  },
-  {
-    value: 'monthly',
-    label: 'Monthly',
-  },
-  {
-    value: 'daily',
-    label: 'Daily',
-  },
+  { value: 'annually', label: 'Annually' },
+  { value: 'semi-annually', label: 'Semi-annually' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'daily', label: 'Daily' },
 ];
 
 export default function CompoundInterestPage() {
   const [principal, setPrincipal] = useState('');
   const [annualRate, setAnnualRate] = useState('');
   const [timeInYears, setTimeInYears] = useState('');
+
   const [compoundingFrequency, setCompoundingFrequency] =
     useState<CompoundingFrequency>('annually');
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [historySaveError, setHistorySaveError] = useState(false);
 
   const [result, setResult] = useState<{
     interest: number;
@@ -75,6 +65,7 @@ export default function CompoundInterestPage() {
     setter: (value: string) => void,
   ) => {
     setter(value);
+    setHistorySaveError(false);
 
     setErrors((currentErrors) => {
       if (!currentErrors[field]) {
@@ -92,6 +83,7 @@ export default function CompoundInterestPage() {
 
   const handleFrequencyChange = (value: CompoundingFrequency) => {
     setCompoundingFrequency(value);
+    setHistorySaveError(false);
 
     setErrors((currentErrors) => {
       if (!currentErrors.compoundingFrequency) {
@@ -107,10 +99,21 @@ export default function CompoundInterestPage() {
     setResult(null);
   };
 
+  const handleReset = () => {
+    setPrincipal('');
+    setAnnualRate('');
+    setTimeInYears('');
+    setCompoundingFrequency('annually');
+    setErrors({});
+    setResult(null);
+    setHistorySaveError(false);
+  };
+
   const handleCalculate = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
+    setHistorySaveError(false);
 
     const input = {
       principal: Number(principal),
@@ -133,125 +136,145 @@ export default function CompoundInterestPage() {
     setResult(calculation);
 
     try {
-    await saveCompoundInterestHistory(
-  historyRepository,
-  input,
-  calculation,
-);
+      await saveCompoundInterestHistory(
+        historyRepository,
+        input,
+        calculation,
+      );
     } catch (error) {
-    console.error(
-        'Failed to save calculation history.',
-        error,
-    );
+      console.error('Failed to save calculation history.', error);
+      setHistorySaveError(true);
     }
   };
 
   return (
     <CalculatorPageLayout
-  title="Compound Interest Calculator"
-  description="Calculate compound interest and the total amount based on your investment, interest rate, time period and compounding frequency."
->
-<Card>
-            <CardContent>
-              <Box
-                component="form"
-                aria-label="Compound interest calculator"
-                onSubmit={handleCalculate}
-                noValidate
-              >
-                <Stack spacing={3}>
-                  <CalculatorNumberField
-                    name="principal"
-                    label="Principal Amount"
-                    value={principal}
-                    error={errors.principal}
-                    onChange={(value) =>
-                        handleInputChange('principal', value, setPrincipal)
-                    }
-                    />
-
-                    <CalculatorNumberField
-                    name="annualRate"
-                    label="Annual Interest Rate (%)"
-                    value={annualRate}
-                    error={errors.annualRate}
-                    onChange={(value) =>
-                        handleInputChange('annualRate', value, setAnnualRate)
-                    }
-                    />
-
-                    <CalculatorNumberField
-                    name="timeInYears"
-                    label="Time (Years)"
-                    value={timeInYears}
-                    error={errors.timeInYears}
-                    onChange={(value) =>
-                        handleInputChange('timeInYears', value, setTimeInYears)
-                    }
-                    />
-
-                  <FormControl
-  fullWidth
-  error={Boolean(errors.compoundingFrequency)}
->
-  <InputLabel id="compounding-frequency-label">
-    Compounding Frequency
-  </InputLabel>
-
-  <Select
-    labelId="compounding-frequency-label"
-    value={compoundingFrequency}
-    label="Compounding Frequency"
-    onChange={(event) =>
-      handleFrequencyChange(
-        event.target.value as CompoundingFrequency,
-      )
-    }
-  >
-    {frequencyOptions.map((option) => (
-      <MenuItem
-        key={option.value}
-        value={option.value}
-      >
-        {option.label}
-      </MenuItem>
-    ))}
-  </Select>
-
-  {errors.compoundingFrequency && (
-    <Box
-      component="span"
-      sx={{
-        color: 'error.main',
-        fontSize: '0.75rem',
-        mt: 0.5,
-        ml: 1.75,
-      }}
+      title="Compound Interest Calculator"
+      description="Calculate compound interest and the total amount based on your investment, interest rate, time period and compounding frequency."
     >
-      {errors.compoundingFrequency}
-    </Box>
-  )}
-</FormControl>
+      <Card>
+        <CardContent>
+          <Box
+            component="form"
+            aria-label="Compound interest calculator"
+            onSubmit={handleCalculate}
+            noValidate
+          >
+            <Stack spacing={3}>
+              <CalculatorNumberField
+                name="principal"
+                label="Principal Amount"
+                value={principal}
+                error={errors.principal}
+                onChange={(value) =>
+                  handleInputChange('principal', value, setPrincipal)
+                }
+              />
 
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
+              <CalculatorNumberField
+                name="annualRate"
+                label="Annual Interest Rate (%)"
+                value={annualRate}
+                error={errors.annualRate}
+                onChange={(value) =>
+                  handleInputChange('annualRate', value, setAnnualRate)
+                }
+              />
+
+              <CalculatorNumberField
+                name="timeInYears"
+                label="Time (Years)"
+                value={timeInYears}
+                error={errors.timeInYears}
+                onChange={(value) =>
+                  handleInputChange('timeInYears', value, setTimeInYears)
+                }
+              />
+
+              <FormControl
+                fullWidth
+                error={Boolean(errors.compoundingFrequency)}
+              >
+                <InputLabel id="compounding-frequency-label">
+                  Compounding Frequency
+                </InputLabel>
+
+                <Select
+                  name="compoundingFrequency"
+                  labelId="compounding-frequency-label"
+                  value={compoundingFrequency}
+                  label="Compounding Frequency"
+                  onChange={(event) =>
+                    handleFrequencyChange(
+                      event.target.value as CompoundingFrequency,
+                    )
+                  }
+                >
+                  {frequencyOptions.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+
+                {errors.compoundingFrequency && (
+                  <Box
+                    component="span"
+                    sx={{
+                      color: 'error.main',
+                      fontSize: '0.75rem',
+                      mt: 0.5,
+                      ml: 1.75,
+                    }}
                   >
-                    Calculate
-                  </Button>
-                </Stack>
-              </Box>
-            </CardContent>
-          </Card>
+                    {errors.compoundingFrequency}
+                  </Box>
+                )}
+              </FormControl>
 
-  {result && (
-    <CalculatorResult
-      interestLabel="Compound Interest"
-      interest={result.interest}
-      totalAmount={result.totalAmount}
-    />
-  )}
-</CalculatorPageLayout>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+              >
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                >
+                  Calculate
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="large"
+                  fullWidth
+                  onClick={handleReset}
+                >
+                  Reset
+                </Button>
+              </Stack>
+            </Stack>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {result && (
+        <Box aria-live="polite">
+          <CalculatorResult
+            interestLabel="Compound Interest"
+            interest={result.interest}
+            totalAmount={result.totalAmount}
+          />
+        </Box>
+      )}
+
+      {historySaveError && (
+        <Typography role="status" color="warning.main">
+          Calculation completed, but it could not be saved to history.
+        </Typography>
+      )}
+    </CalculatorPageLayout>
   );
 }

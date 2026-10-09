@@ -31,6 +31,10 @@ export function calculateCompoundInterest(
 
   const interest = totalAmount - principal;
 
+  if (!Number.isFinite(interest) || !Number.isFinite(totalAmount)) {
+  throw new RangeError('Calculation result exceeds the supported numeric range.');
+}
+
   return {
     interest,
     totalAmount,

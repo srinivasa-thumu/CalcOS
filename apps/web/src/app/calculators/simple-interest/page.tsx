@@ -7,6 +7,7 @@ import {
   Card,
   CardContent,
   Stack,
+  Typography,
 } from '@mui/material';
 import { calculateSimpleInterest } from '@calcos/calculation-core';
 import { validateSimpleInterestInput } from '@calcos/validation';
@@ -28,7 +29,7 @@ export default function SimpleInterestPage() {
   const [timeInYears, setTimeInYears] = useState('');
 
   const [errors, setErrors] = useState<FormErrors>({});
-
+  const [historySaveError, setHistorySaveError] = useState(false);
   const [result, setResult] = useState<{
     interest: number;
     totalAmount: number;
@@ -39,6 +40,7 @@ export default function SimpleInterestPage() {
     value: string,
     setter: (value: string) => void,
   ) => {
+    setHistorySaveError(false);
     setter(value);
 
     setErrors((currentErrors) => {
@@ -55,9 +57,19 @@ export default function SimpleInterestPage() {
     setResult(null);
   };
 
+  const handleReset = () => {
+  setPrincipal('');
+  setAnnualRate('');
+  setTimeInYears('');
+  setErrors({});
+  setResult(null);
+  setHistorySaveError(false);
+};
+
   const handleCalculate = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
+    setHistorySaveError(false);
     event.preventDefault();
 
     const input = {
@@ -90,6 +102,7 @@ export default function SimpleInterestPage() {
         'Failed to save calculation history.',
         error,
     );
+    setHistorySaveError(true);
     }
   };
 
@@ -137,25 +150,50 @@ export default function SimpleInterestPage() {
   }
 />
 
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                  >
-                    Calculate
-                  </Button>
+                  <Stack
+  direction={{ xs: 'column', sm: 'row' }}
+  spacing={2}
+>
+  <Button
+    type="submit"
+    variant="contained"
+    size="large"
+    fullWidth
+  >
+    Calculate
+  </Button>
+
+  <Button
+    type="button"
+    variant="outlined"
+    size="large"
+    fullWidth
+    onClick={handleReset}
+  >
+    Reset
+  </Button>
+</Stack>
                 </Stack>
               </Box>
             </CardContent>
           </Card>
 
   {result && (
-    <CalculatorResult
+    <Box aria-live="polite">
+      <CalculatorResult
       interestLabel="Simple Interest"
       interest={result.interest}
       totalAmount={result.totalAmount}
     />
+    </Box>
+    
   )}
+
+  {historySaveError && (
+  <Typography role="status" color="warning.main">
+    Calculation completed, but it could not be saved to history.
+  </Typography>
+)}
 </CalculatorPageLayout>
   );
 }

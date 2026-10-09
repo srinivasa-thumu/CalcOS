@@ -59,18 +59,29 @@ expect(result.interest).toBeCloseTo(22039.09613755593, 10);
     });
 
     expect(result.totalAmount).toBeCloseTo(122136.9301639786, 10);
-expect(result.interest).toBeCloseTo(22136.9301639786, 10);
-  });
+      expect(result.interest).toBeCloseTo(22136.9301639786, 10);
+        });
 
-  it('handles zero interest rate', () => {
-    const result = calculateCompoundInterest({
-      principal: 100000,
-      annualRate: 0,
-      timeInYears: 2,
-      compoundingFrequency: 'monthly',
-    });
+        it('handles zero interest rate', () => {
+          const result = calculateCompoundInterest({
+            principal: 100000,
+            annualRate: 0,
+            timeInYears: 2,
+            compoundingFrequency: 'monthly',
+          });
 
-    expect(result.interest).toBe(0);
-    expect(result.totalAmount).toBe(100000);
-  });
+          expect(result.interest).toBe(0);
+          expect(result.totalAmount).toBe(100000);
+        });
+
+        it('does not silently return non-finite results for extreme inputs', () => {
+        expect(() =>
+          calculateCompoundInterest({
+            principal: Number.MAX_VALUE,
+            annualRate: 100,
+            timeInYears: 2,
+            compoundingFrequency: 'annually',
+          }),
+        ).toThrow();
+      });
 });

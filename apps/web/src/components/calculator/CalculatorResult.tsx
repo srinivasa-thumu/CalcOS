@@ -1,5 +1,11 @@
-import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
-
+import {
+  Box,
+  Card,
+  CardContent,
+  Divider,
+  Stack,
+  Typography,
+} from '@mui/material';
 import { roundCurrency } from '@calcos/money';
 
 interface CalculatorResultProps {
@@ -21,10 +27,17 @@ export function CalculatorResult({
   totalAmount,
 }: CalculatorResultProps) {
   return (
-    <Card>
+    <Card
+      component="section"
+      aria-label="Calculation result"
+    >
       <CardContent>
-        <Stack spacing={2}>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+        <Stack spacing={3}>
+          <Typography
+            component="h2"
+            variant="h5"
+            sx={{ fontWeight: 700 }}
+          >
             Result
           </Typography>
 
@@ -33,17 +46,37 @@ export function CalculatorResult({
               {interestLabel}
             </Typography>
 
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                fontSize: {
+                  xs: '2rem',
+                  sm: '2.5rem',
+                },
+              }}
+            >
               {formatCurrency(interest)}
             </Typography>
           </Box>
+
+          <Divider />
 
           <Box>
             <Typography color="text.secondary">
               Total Amount
             </Typography>
 
-            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                fontSize: {
+                  xs: '2rem',
+                  sm: '2.5rem',
+                },
+              }}
+            >
               {formatCurrency(totalAmount)}
             </Typography>
           </Box>
