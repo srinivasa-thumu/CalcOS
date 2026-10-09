@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Card,
+  Chip,
   CardContent,
   Container,
   Stack,
@@ -33,6 +34,12 @@ export default function HomePage() {
               maxWidth: 760,
             }}
           >
+            <Chip
+            label="Phase 1 · Live 🚀"
+            color="success"
+            variant="outlined"
+            sx={{ mb: 2, fontWeight: 600 }}
+          />
             <Typography
               component="h1"
               variant="h2"
