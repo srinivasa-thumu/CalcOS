@@ -5,3 +5,5 @@ export {
 export {
   calculateCompoundInterest,
 } from './compound-interest';
+
+export * from './duration';

@@ -27,7 +27,7 @@ test.describe('Accessibility and responsive checks', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('calculator forms have accessible names and labeled fields', async ({
+  test('simple interest form has accessible names and labeled fields', async ({
     page,
   }) => {
     await page.goto('/calculators/simple-interest');
@@ -38,10 +38,20 @@ test.describe('Accessibility and responsive checks', () => {
 
     await expect(page.getByLabel('Principal Amount')).toBeVisible();
     await expect(
-      page.getByLabel('Annual Interest Rate (%)'),
+      page.getByRole('combobox', { name: 'Interest Rate Type' }),
     ).toBeVisible();
-    await expect(page.getByLabel('Time (Years)')).toBeVisible();
+    await expect(page.getByLabel('Annual Interest Rate (%)')).toBeVisible();
+    await expect(
+      page.getByRole('combobox', { name: 'Duration Type' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Years')).toBeVisible();
+    await expect(page.getByLabel('Months (0–11)')).toBeVisible();
+    await expect(page.getByLabel('Days')).toBeVisible();
+  });
 
+  test('compound interest form has accessible names and labeled fields', async ({
+    page,
+  }) => {
     await page.goto('/calculators/compound-interest');
 
     await expect(
@@ -50,9 +60,15 @@ test.describe('Accessibility and responsive checks', () => {
 
     await expect(page.getByLabel('Principal Amount')).toBeVisible();
     await expect(
-      page.getByLabel('Annual Interest Rate (%)'),
+      page.getByRole('combobox', { name: 'Interest Rate Type' }),
     ).toBeVisible();
-    await expect(page.getByLabel('Time (Years)')).toBeVisible();
+    await expect(page.getByLabel('Annual Interest Rate (%)')).toBeVisible();
+    await expect(
+      page.getByRole('combobox', { name: 'Duration Type' }),
+    ).toBeVisible();
+    await expect(page.getByLabel('Years')).toBeVisible();
+    await expect(page.getByLabel('Months (0–11)')).toBeVisible();
+    await expect(page.getByLabel('Days')).toBeVisible();
     await expect(
       page.getByRole('combobox', { name: 'Compounding Frequency' }),
     ).toBeVisible();
@@ -77,15 +93,13 @@ test.describe('Accessibility and responsive checks', () => {
     expect(firstFocusedElement.isBody).toBe(false);
     expect(firstFocusedElement.tagName).toBeTruthy();
 
-    // Tab through the page and confirm the form's Calculate button
-    // can receive keyboard focus.
     const calculateButton = page.getByRole('button', {
       name: 'Calculate',
     });
 
     let calculateButtonFocused = false;
 
-    for (let i = 0; i < 20; i += 1) {
+    for (let i = 0; i < 30; i += 1) {
       await page.keyboard.press('Tab');
 
       calculateButtonFocused = await calculateButton.evaluate(
@@ -116,7 +130,7 @@ test.describe('Accessibility and responsive checks', () => {
     }
   });
 
-  test('validation errors are displayed when required inputs are empty', async ({
+  test('empty simple interest form displays validation errors', async ({
     page,
   }) => {
     await page.goto('/calculators/simple-interest');
@@ -124,11 +138,20 @@ test.describe('Accessibility and responsive checks', () => {
     await page.getByRole('button', { name: 'Calculate' }).click();
 
     await expect(
-      page.getByText('Principal amount must be greater than 0.'),
+      page.getByText('Principal must be greater than 0.'),
     ).toBeVisible();
 
     await expect(
-      page.getByText('Time period must be greater than 0.'),
-    ).toBeVisible();
+  page
+    .getByRole('form', { name: 'Simple interest calculator' })
+    .getByRole('alert')
+    .filter({
+      hasText: 'Enter whole numbers for years, months, and days.',
+    }),
+).toBeVisible();
+
+    await expect(
+      page.getByRole('region', { name: 'Calculation result' }),
+    ).toHaveCount(0);
   });
 });

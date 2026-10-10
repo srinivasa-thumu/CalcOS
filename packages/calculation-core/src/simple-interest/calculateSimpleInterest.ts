@@ -6,15 +6,34 @@ import type {
 export function calculateSimpleInterest(
   input: SimpleInterestInput,
 ): SimpleInterestResult {
-  const { principal, annualRate, timeInYears } = input;
+  const {
+    principal,
+    annualRate,
+    timeInYears,
+    rateMode = 'annual',
+    monthlyRatePer100,
+    durationLabel,
+  } = input;
 
-  const interest = principal * (annualRate / 100) * timeInYears;
+  const effectiveAnnualRate =
+    rateMode === 'monthly-per-100'
+      ? (monthlyRatePer100 ?? 0) * 12
+      : annualRate;
+
+  const interest =
+    principal * (effectiveAnnualRate / 100) * timeInYears;
   const totalAmount = principal + interest;
+
   if (!Number.isFinite(interest) || !Number.isFinite(totalAmount)) {
-    throw new RangeError('Calculation result exceeds the supported numeric range.');
+    throw new RangeError(
+      'Calculation result exceeds the supported numeric range.',
+    );
   }
+
   return {
     interest,
     totalAmount,
+    annualRateEquivalent: effectiveAnnualRate,
+    ...(durationLabel ? { durationLabel } : {}),
   };
 }
