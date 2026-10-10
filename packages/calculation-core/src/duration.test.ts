@@ -3,35 +3,38 @@ import { calculateDuration } from './duration';
 
 describe('calculateDuration', () => {
   it('converts a manual duration to a year fraction', () => {
-    expect(
-      calculateDuration({
-        durationMode: 'manual',
-        durationYears: 2,
-        durationMonths: 4,
-        durationDays: 32,
-      }),
-    ).toMatchObject({
+    const result = calculateDuration({
+      durationMode: 'manual',
+      durationYears: 2,
+      durationMonths: 4,
+      durationDays: 32,
+    });
+
+    expect(result).toMatchObject({
       years: 2,
       months: 4,
       days: 32,
-      timeInYears: 2 + 4 / 12 + 32 / 365,
       durationLabel: '2y, 4m, 32 days',
     });
+
+    expect(result.timeInYears).toBeCloseTo(2 + 4 / 12 + 32 / 365, 10);
   });
 
   it('calculates calendar duration from dates', () => {
-    expect(
-      calculateDuration({
-        durationMode: 'date-range',
-        startDate: '2024-01-01',
-        endDate: '2026-05-03',
-      }),
-    ).toMatchObject({
+    const result = calculateDuration({
+      durationMode: 'date-range',
+      startDate: '2024-01-01',
+      endDate: '2026-05-03',
+    });
+
+    expect(result).toMatchObject({
       years: 2,
       months: 4,
       days: 2,
       durationLabel: '2y, 4m, 2 days',
     });
+
+    expect(result.timeInYears).toBeCloseTo(853 / 365, 10);
   });
 
   it('rejects invalid dates', () => {

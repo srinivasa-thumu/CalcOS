@@ -11,6 +11,7 @@ describe('calculateSimpleInterest', () => {
 
     expect(result.interest).toBe(20000);
     expect(result.totalAmount).toBe(120000);
+    expect(result.annualRateEquivalent).toBe(10);
   });
 
   it('handles a zero interest rate', () => {
@@ -22,6 +23,7 @@ describe('calculateSimpleInterest', () => {
 
     expect(result.interest).toBe(0);
     expect(result.totalAmount).toBe(100000);
+    expect(result.annualRateEquivalent).toBe(0);
   });
 
   it('handles fractional time periods', () => {
@@ -33,19 +35,6 @@ describe('calculateSimpleInterest', () => {
 
     expect(result.interest).toBe(6000);
     expect(result.totalAmount).toBe(106000);
-  });
-
-    it('calculates interest for a zero rate', () => {
-    const result = calculateSimpleInterest({
-      principal: 100_000,
-      annualRate: 0,
-      timeInYears: 5,
-    });
-
-    expect(result).toEqual({
-      interest: 0,
-      totalAmount: 100_000,
-    });
   });
 
   it('does not silently return non-finite results for extreme inputs', () => {

@@ -21,9 +21,7 @@ describe('validateSimpleInterestInput', () => {
     });
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.principal).toBe(
-      'Principal amount must be greater than 0.',
-    );
+    expect(result.errors.principal).toBe('Principal must be greater than 0.');
   });
 
   it('rejects negative principal', () => {
@@ -34,9 +32,7 @@ describe('validateSimpleInterestInput', () => {
     });
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.principal).toBe(
-      'Principal amount must be greater than 0.',
-    );
+    expect(result.errors.principal).toBe('Principal must be greater than 0.');
   });
 
   it('rejects negative interest rate', () => {
@@ -47,9 +43,7 @@ describe('validateSimpleInterestInput', () => {
     });
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.annualRate).toBe(
-      'Interest rate cannot be negative.',
-    );
+    expect(result.errors.annualRate).toBe('Annual interest rate must be a non-negative number.');
   });
 
   it('rejects zero time period', () => {
@@ -60,8 +54,6 @@ describe('validateSimpleInterestInput', () => {
     });
 
     expect(result.isValid).toBe(false);
-    expect(result.errors.timeInYears).toBe(
-      'Time period must be greater than 0.',
-    );
+    expect(result.errors.timeInYears).toBe('Time period must be greater than 0.');
   });
 });

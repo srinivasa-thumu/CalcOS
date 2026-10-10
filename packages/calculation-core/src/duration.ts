@@ -70,8 +70,8 @@ export function calculateDuration(input: DurationInput): DurationResult {
     const start = parseDate(input.startDate);
     const end = parseDate(input.endDate);
 
-    if (end.getTime() <= start.getTime()) {
-      throw new RangeError('End date must be after the start date.');
+    if (end.getTime() < start.getTime()) {
+      throw new RangeError('End date must be on or after start date.');
     }
 
     elapsedDays = (end.getTime() - start.getTime()) / MS_PER_DAY;
@@ -93,11 +93,7 @@ export function calculateDuration(input: DurationInput): DurationResult {
 
     days = Math.round((end.getTime() - cursor.getTime()) / MS_PER_DAY);
   } else {
-    const values = [
-      input.durationYears,
-      input.durationMonths,
-      input.durationDays,
-    ];
+    const values = [input.durationYears, input.durationMonths, input.durationDays];
 
     if (values.some((value) => value === undefined || !Number.isInteger(value))) {
       throw new RangeError('Enter whole numbers for years, months, and days.');
@@ -108,9 +104,7 @@ export function calculateDuration(input: DurationInput): DurationResult {
     days = input.durationDays!;
 
     if (years < 0 || months < 0 || months > 11 || days < 0) {
-      throw new RangeError(
-        'Enter non-negative years, months from 0 to 11, and non-negative days.',
-      );
+      throw new RangeError('Enter non-negative years, months from 0 to 11, and non-negative days.');
     }
 
     elapsedDays = years * 365 + months * (365 / 12) + days;
