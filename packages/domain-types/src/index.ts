@@ -18,3 +18,5 @@ export type {
 } from './history';
 
 export type { HistoryRepository } from './historyRepository';
+
+export * from './interest-options';

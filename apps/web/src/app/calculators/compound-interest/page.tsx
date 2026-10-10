@@ -7,29 +7,37 @@ import {
   Card,
   CardContent,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   Typography,
 } from '@mui/material';
-
-import { calculateCompoundInterest } from '@calcos/calculation-core';
-import type { CompoundingFrequency } from '@calcos/domain-types';
+import type {
+  CompoundingFrequency,
+  DurationMode,
+  InterestRateMode,
+} from '@calcos/domain-types';
+import {
+  calculateCompoundInterest,
+  calculateDuration,
+} from '@calcos/calculation-core';
 import { validateCompoundInterestInput } from '@calcos/validation';
-
-import { CalculatorResult } from '@/components/calculator/CalculatorResult';
+import { CalculatorDateField } from '@/components/calculator/CalculatorDateField';
 import { CalculatorNumberField } from '@/components/calculator/CalculatorNumberField';
 import { CalculatorPageLayout } from '@/components/calculator/CalculatorPageLayout';
-
+import { CalculatorResult } from '@/components/calculator/CalculatorResult';
 import { saveCompoundInterestHistory } from '@/lib/calculationHistory';
 import { historyRepository } from '@/lib/history';
 
 interface FormErrors {
   principal?: string;
   annualRate?: string;
+  monthlyRatePer100?: string;
   timeInYears?: string;
   compoundingFrequency?: string;
+  duration?: string;
 }
 
 const frequencyOptions: {
@@ -43,114 +51,174 @@ const frequencyOptions: {
   { value: 'daily', label: 'Daily' },
 ];
 
+function parseNumber(value: string): number {
+  return value.trim() === '' ? Number.NaN : Number(value);
+}
+
 export default function CompoundInterestPage() {
   const [principal, setPrincipal] = useState('');
+  const [rateMode, setRateMode] = useState<InterestRateMode>('annual');
   const [annualRate, setAnnualRate] = useState('');
-  const [timeInYears, setTimeInYears] = useState('');
+  const [monthlyRatePer100, setMonthlyRatePer100] = useState('');
+
+  const [durationMode, setDurationMode] = useState<DurationMode>('manual');
+  const [durationYears, setDurationYears] = useState('');
+  const [durationMonths, setDurationMonths] = useState('');
+  const [durationDays, setDurationDays] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const [compoundingFrequency, setCompoundingFrequency] =
     useState<CompoundingFrequency>('annually');
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [historySaveError, setHistorySaveError] = useState(false);
-
   const [result, setResult] = useState<{
     interest: number;
     totalAmount: number;
+    annualRateEquivalent?: number;
+    durationLabel?: string;
   } | null>(null);
 
-  const handleInputChange = (
-    field: keyof FormErrors,
-    value: string,
-    setter: (value: string) => void,
-  ) => {
-    setter(value);
-    setHistorySaveError(false);
-
-    setErrors((currentErrors) => {
-      if (!currentErrors[field]) {
-        return currentErrors;
-      }
-
-      const nextErrors = { ...currentErrors };
-      delete nextErrors[field];
-
-      return nextErrors;
-    });
-
+  const resetResult = () => {
     setResult(null);
-  };
-
-  const handleFrequencyChange = (value: CompoundingFrequency) => {
-    setCompoundingFrequency(value);
     setHistorySaveError(false);
-
-    setErrors((currentErrors) => {
-      if (!currentErrors.compoundingFrequency) {
-        return currentErrors;
-      }
-
-      const nextErrors = { ...currentErrors };
-      delete nextErrors.compoundingFrequency;
-
-      return nextErrors;
-    });
-
-    setResult(null);
   };
 
   const handleReset = () => {
     setPrincipal('');
+    setRateMode('annual');
     setAnnualRate('');
-    setTimeInYears('');
+    setMonthlyRatePer100('');
+    setDurationMode('manual');
+    setDurationYears('');
+    setDurationMonths('');
+    setDurationDays('');
+    setStartDate('');
+    setEndDate('');
     setCompoundingFrequency('annually');
     setErrors({});
     setResult(null);
     setHistorySaveError(false);
   };
 
-  const handleCalculate = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-    setHistorySaveError(false);
+const handleCalculate = async (
+  event: React.FormEvent<HTMLFormElement>,
+) => {
+  event.preventDefault();
+  setHistorySaveError(false);
 
-    const input = {
-      principal: Number(principal),
-      annualRate: Number(annualRate),
-      timeInYears: Number(timeInYears),
-      compoundingFrequency,
-    };
+  const enteredRate =
+    rateMode === 'annual'
+      ? parseNumber(annualRate)
+      : parseNumber(monthlyRatePer100);
 
-    const validation = validateCompoundInterestInput(input);
-
-    setErrors(validation.errors);
-
-    if (!validation.isValid) {
-      setResult(null);
-      return;
-    }
-
-    const calculation = calculateCompoundInterest(input);
-
-    setResult(calculation);
-
-    try {
-      await saveCompoundInterestHistory(
-        historyRepository,
-        input,
-        calculation,
-      );
-    } catch (error) {
-      console.error('Failed to save calculation history.', error);
-      setHistorySaveError(true);
-    }
+  const baseInput = {
+    principal: parseNumber(principal),
+    annualRate:
+      rateMode === 'annual' ? enteredRate : enteredRate * 12,
+    monthlyRatePer100:
+      rateMode === 'monthly-per-100' ? enteredRate : undefined,
+    rateMode,
+    durationMode,
+    timeInYears: 0,
+    ...(durationMode === 'date-range'
+      ? {
+          startDate,
+          endDate,
+          dayCountConvention: 'actual/365' as const,
+        }
+      : {
+          durationYears: parseNumber(durationYears),
+          durationMonths: parseNumber(durationMonths),
+          durationDays: parseNumber(durationDays),
+        }),
+    compoundingFrequency,
   };
+
+  let duration;
+  let durationError: string | undefined;
+
+  try {
+    duration = calculateDuration(
+      durationMode === 'date-range'
+        ? {
+            durationMode,
+            startDate,
+            endDate,
+            dayCountConvention: 'actual/365',
+          }
+        : {
+            durationMode,
+            durationYears: parseNumber(durationYears),
+            durationMonths: parseNumber(durationMonths),
+            durationDays: parseNumber(durationDays),
+          },
+    );
+  } catch (error) {
+    durationError =
+      error instanceof Error
+        ? error.message
+        : 'Enter a valid duration.';
+  }
+
+  const validationInput = {
+    ...baseInput,
+    ...(duration ? { ...duration } : {}),
+  };
+
+  const validation = validateCompoundInterestInput(validationInput);
+
+  const nextErrors = {
+    ...validation.errors,
+    ...(durationError ? { duration: durationError } : {}),
+  };
+
+  setErrors(nextErrors);
+
+  if (!validation.isValid || !duration) {
+    setResult(null);
+    return;
+  }
+
+  const calculationInput = {
+    ...baseInput,
+    ...duration,
+    durationMode,
+    ...(durationMode === 'date-range'
+      ? {
+          startDate,
+          endDate,
+          dayCountConvention: 'actual/365' as const,
+        }
+      : {
+          durationYears: parseNumber(durationYears),
+          durationMonths: parseNumber(durationMonths),
+          durationDays: parseNumber(durationDays),
+        }),
+    compoundingFrequency,
+  };
+
+  const calculation = calculateCompoundInterest(calculationInput);
+  setResult(calculation);
+
+  try {
+    await saveCompoundInterestHistory(
+      historyRepository,
+      calculationInput,
+      calculation,
+    );
+  } catch (error) {
+    console.error('Failed to save calculation history.', error);
+    setHistorySaveError(true);
+  }
+};
+
 
   return (
     <CalculatorPageLayout
       title="Compound Interest Calculator"
-      description="Calculate compound interest and the total amount based on your investment, interest rate, time period and compounding frequency."
+      description="Calculate compound interest using annual rates or monthly interest per ₹100, with flexible duration and compounding options."
     >
       <Card>
         <CardContent>
@@ -166,30 +234,167 @@ export default function CompoundInterestPage() {
                 label="Principal Amount"
                 value={principal}
                 error={errors.principal}
-                onChange={(value) =>
-                  handleInputChange('principal', value, setPrincipal)
-                }
+                onChange={(value) => {
+                  setPrincipal(value);
+                  resetResult();
+                }}
               />
 
-              <CalculatorNumberField
-                name="annualRate"
-                label="Annual Interest Rate (%)"
-                value={annualRate}
-                error={errors.annualRate}
-                onChange={(value) =>
-                  handleInputChange('annualRate', value, setAnnualRate)
-                }
-              />
+              <FormControl fullWidth>
+                <InputLabel id="compound-rate-mode-label">
+                  Interest Rate Type
+                </InputLabel>
+                <Select
+                  name="rateMode"
+                  labelId="compound-rate-mode-label"
+                  label="Interest Rate Type"
+                  value={rateMode}
+                  onChange={(event) => {
+                    setRateMode(event.target.value as InterestRateMode);
+                    setErrors({});
+                    resetResult();
+                  }}
+                >
+                  <MenuItem value="annual">Annual interest rate (%)</MenuItem>
+                  <MenuItem value="monthly-per-100">
+                    Monthly interest per ₹100
+                  </MenuItem>
+                </Select>
+              </FormControl>
 
-              <CalculatorNumberField
-                name="timeInYears"
-                label="Time (Years)"
-                value={timeInYears}
-                error={errors.timeInYears}
-                onChange={(value) =>
-                  handleInputChange('timeInYears', value, setTimeInYears)
-                }
-              />
+              {rateMode === 'annual' ? (
+                <CalculatorNumberField
+                  name="annualRate"
+                  label="Annual Interest Rate (%)"
+                  value={annualRate}
+                  error={errors.annualRate}
+                  onChange={(value) => {
+                    setAnnualRate(value);
+                    resetResult();
+                  }}
+                />
+              ) : (
+                <CalculatorNumberField
+                  name="monthlyRatePer100"
+                  label="Monthly Interest per ₹100 (₹)"
+                  value={monthlyRatePer100}
+                  error={errors.monthlyRatePer100}
+                  onChange={(value) => {
+                    setMonthlyRatePer100(value);
+                    resetResult();
+                  }}
+                />
+              )}
+
+              <FormControl fullWidth>
+                <InputLabel id="compound-duration-mode-label">
+                  Duration Type
+                </InputLabel>
+                <Select
+                  name="durationMode"
+                  labelId="compound-duration-mode-label"
+                  label="Duration Type"
+                  value={durationMode}
+                  onChange={(event) => {
+                    setDurationMode(event.target.value as DurationMode);
+                    setErrors({});
+                    resetResult();
+                  }}
+                >
+                  <MenuItem value="manual">Enter duration manually</MenuItem>
+                  <MenuItem value="date-range">Start and end dates</MenuItem>
+                </Select>
+              </FormControl>
+
+              {durationMode === 'manual' ? (
+                <Stack spacing={2}>
+                  <Typography variant="subtitle2">Duration</Typography>
+                  <CalculatorNumberField
+                    name="durationYears"
+                    label="Years"
+                    value={durationYears}
+                    onChange={(value) => {
+                      setDurationYears(value);
+                      setErrors((current) => ({
+                        ...current,
+                        duration: undefined,
+                      }));
+                      resetResult();
+                    }}
+                  />
+                  <CalculatorNumberField
+                    name="durationMonths"
+                    label="Months (0–11)"
+                    value={durationMonths}
+                    onChange={(value) => {
+                      setDurationMonths(value);
+                      setErrors((current) => ({
+                        ...current,
+                        duration: undefined,
+                      }));
+                      resetResult();
+                    }}
+                  />
+                  <CalculatorNumberField
+                    name="durationDays"
+                    label="Days"
+                    value={durationDays}
+                    onChange={(value) => {
+                      setDurationDays(value);
+                      setErrors((current) => ({
+                        ...current,
+                        duration: undefined,
+                      }));
+                      resetResult();
+                    }}
+                  />
+                  {errors.duration && (
+                    <Typography color="error" variant="body2" role="alert">
+                      {errors.duration}
+                    </Typography>
+                  )}
+                </Stack>
+              ) : (
+                <Stack spacing={2}>
+                  <CalculatorDateField
+                    name="startDate"
+                    label="Start Date"
+                    value={startDate}
+                    error={errors.duration}
+                    onChange={(value) => {
+                      setStartDate(value);
+                      setErrors((current) => ({
+                        ...current,
+                        duration: undefined,
+                      }));
+                      resetResult();
+                    }}
+                  />
+                  <CalculatorDateField
+                    name="endDate"
+                    label="End Date"
+                    value={endDate}
+                    error={errors.duration}
+                    onChange={(value) => {
+                      setEndDate(value);
+                      setErrors((current) => ({
+                        ...current,
+                        duration: undefined,
+                      }));
+                      resetResult();
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Date-based calculations use Actual/365 for the year
+                    fraction.
+                  </Typography>
+                  {errors.duration && (
+                    <Typography color="error" variant="body2" role="alert">
+                      {errors.duration}
+                    </Typography>
+                  )}
+                </Stack>
+              )}
 
               <FormControl
                 fullWidth
@@ -198,17 +403,21 @@ export default function CompoundInterestPage() {
                 <InputLabel id="compounding-frequency-label">
                   Compounding Frequency
                 </InputLabel>
-
                 <Select
                   name="compoundingFrequency"
                   labelId="compounding-frequency-label"
                   value={compoundingFrequency}
                   label="Compounding Frequency"
-                  onChange={(event) =>
-                    handleFrequencyChange(
+                  onChange={(event) => {
+                    setCompoundingFrequency(
                       event.target.value as CompoundingFrequency,
-                    )
-                  }
+                    );
+                    setErrors((current) => ({
+                      ...current,
+                      compoundingFrequency: undefined,
+                    }));
+                    resetResult();
+                  }}
                 >
                   {frequencyOptions.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
@@ -216,35 +425,25 @@ export default function CompoundInterestPage() {
                     </MenuItem>
                   ))}
                 </Select>
-
                 {errors.compoundingFrequency && (
-                  <Box
-                    component="span"
-                    sx={{
-                      color: 'error.main',
-                      fontSize: '0.75rem',
-                      mt: 0.5,
-                      ml: 1.75,
-                    }}
-                  >
+                  <FormHelperText>
                     {errors.compoundingFrequency}
-                  </Box>
+                  </FormHelperText>
                 )}
               </FormControl>
 
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
-              >
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                >
+              {rateMode === 'monthly-per-100' && (
+                <Typography variant="caption" color="text.secondary">
+                  With monthly compounding, this is applied as the monthly
+                  periodic rate. For other frequencies, the rate is converted
+                  to a nominal annual equivalent by multiplying by 12.
+                </Typography>
+              )}
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <Button type="submit" variant="contained" size="large" fullWidth>
                   Calculate
                 </Button>
-
                 <Button
                   type="button"
                   variant="outlined"
@@ -266,6 +465,8 @@ export default function CompoundInterestPage() {
             interestLabel="Compound Interest"
             interest={result.interest}
             totalAmount={result.totalAmount}
+            durationLabel={result.durationLabel}
+            annualRateEquivalent={result.annualRateEquivalent}
           />
         </Box>
       )}
